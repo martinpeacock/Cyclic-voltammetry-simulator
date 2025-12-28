@@ -2,7 +2,8 @@ import streamlit as st
 import plotly.express as px
 import numpy as np
 
-from ReversibleCV_ClassicPeak_v2.3.1 import run_classic_cv
+# Corrected import — matches your renamed file
+from ReversibleCV_ClassicPeak_v2_3_1 import run_classic_cv
 
 st.set_page_config(page_title="Cyclic Voltammetry Simulator", layout="wide")
 
@@ -60,9 +61,11 @@ if st.button("Run Simulation"):
         T=T,
         x_max=x_max,
         Nx=Nx,
-        snapshot_times=[t_eq + 0.25*(abs(E_vertex-E_start)/v),
-                        t_eq + 0.5*(abs(E_vertex-E_start)/v),
-                        t_eq + abs(E_vertex-E_start)/v + 0.5*(abs(E_vertex-E_end)/v)],
+        snapshot_times=[
+            t_eq + 0.25 * (abs(E_vertex - E_start) / v),
+            t_eq + 0.50 * (abs(E_vertex - E_start) / v),
+            t_eq + abs(E_vertex - E_start) / v + 0.5 * (abs(E_vertex - E_end) / v)
+        ],
         progress_callback=progress_callback
     )
 
@@ -75,16 +78,21 @@ if st.button("Run Simulation"):
 
     # --- Tab 1: CV ---
     with tab1:
-        fig_cv = px.line(x=E, y=i, labels={"x": "E (V)", "y": "i (A)"},
-                         title="Cyclic Voltammogram (Model A)")
+        fig_cv = px.line(
+            x=E, y=i,
+            labels={"x": "E (V)", "y": "i (A)"},
+            title="Cyclic Voltammogram (Model A)"
+        )
         st.plotly_chart(fig_cv, use_container_width=True)
 
     # --- Tab 2: Surface concentrations ---
     with tab2:
-        fig_surf = px.line(x=t, y=np.vstack([Cred, Cox]).T,
-                           labels={"x": "time (s)", "value": "Concentration (mol/m³)"},
-                           title="Surface Concentrations vs Time")
-        fig_surf.update_layout(legend=dict(title="Species", itemsizing="constant"))
+        fig_surf = px.line(
+            x=t,
+            y=np.vstack([Cred, Cox]).T,
+            labels={"x": "time (s)", "value": "Concentration (mol/m³)"},
+            title="Surface Concentrations vs Time"
+        )
         fig_surf.data[0].name = "C_red(0,t)"
         fig_surf.data[1].name = "C_ox(0,t)"
         st.plotly_chart(fig_surf, use_container_width=True)
