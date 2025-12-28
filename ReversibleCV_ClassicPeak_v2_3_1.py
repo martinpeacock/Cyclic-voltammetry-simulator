@@ -1,15 +1,9 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Sun Dec 28 19:40:44 2025
-
-@author: martp
-"""
-
 """
 ReversibleCV_ClassicPeak_v2.3.1
 --------------------------------
 Classic reversible cyclic voltammetry simulator (Model A).
-Implements 1D diffusion with Nernst boundary condition at x=0.
+Implements 1D diffusion with a *correct* Nernst boundary condition
+that allows surface depletion and produces a physically accurate CV.
 """
 
 import numpy as np
@@ -37,46 +31,24 @@ def run_classic_cv(
     progress_callback=None
 ):
     """
-    Main wrapper that runs the reversible CV simulation.
-
-    Parameters:
-        E_start (float): Start potential (V)
-        E_vertex (float): Vertex potential (V)
-        E_end (float): End potential (V)
-        v (float): Scan rate (V/s)
-        dt (float): Time step (s)
-        t_eq (float): Equilibration time at E_start (s)
-        D (float): Diffusion coefficient (m²/s)
-        C_bulk (float): Bulk concentration (mol/m³)
-        A (float): Electrode area (m²)
-        E0 (float): Formal potential (V)
-        T (float): Temperature (K)
-        x_max (float): Spatial domain size (m)
-        Nx (int): Number of spatial grid points
-        snapshot_times (list[float]): Times at which to store concentration profiles
-        progress_callback (callable): Optional, called as progress_callback(k, Nt)
-
     Returns:
-        E (ndarray): Potential waveform (V)
-        i (ndarray): Current (A)
-        t (ndarray): Time array (s)
-        Cred_surf (ndarray): Surface reduced concentration vs time (mol/m³)
-        Cox_surf (ndarray): Surface oxidized concentration vs time (mol/m³)
-        snaps (dict): Snapshot data with keys:
-            - "times": list of snapshot times
-            - "x": spatial grid (ndarray)
-            - "Cred_profiles": list of Cred(x) arrays
-            - "Cox_profiles": list of Cox(x) arrays
+        E (array): potential waveform
+        i (array): current (A)
+        t (array): time (s)
+        Cred_surf (array): surface reduced concentration
+        Cox_surf (array): surface oxidized concentration
+        snaps (dict): snapshot profiles
     """
 
     # ------------------------------------------------------------
-    # Grids
-    # ------------------------------------------------------------
     # Spatial grid
+    # ------------------------------------------------------------
     x = np.linspace(0, x_max, Nx)
     dx = x[1] - x[0]
 
+    # ------------------------------------------------------------
     # Time grid
+    # ------------------------------------------------------------
     t_forward = abs(E_vertex - E_start) / v
     t_reverse = abs(E_end - E_vertex) / v
     total_time = t_eq + t_forward + t_reverse
@@ -100,22 +72,21 @@ def run_classic_cv(
     # ------------------------------------------------------------
     # Initial concentrations
     # ------------------------------------------------------------
-    # Total concentration assumed equal to C_bulk everywhere initially
-    C = np.ones(Nx) * C_bulk
+    Cred = np.ones(Nx) * C_bulk
+    Cox = np.zeros(Nx)
 
     # ------------------------------------------------------------
-    # Crank–Nicolson setup
+    # Crank–Nicolson matrices
     # ------------------------------------------------------------
     alpha = D * dt / (2 * dx * dx)
 
-    # Banded matrix for CN: main diagonal in middle row
     ab = np.zeros((3, Nx))
-    ab[0, 1:] = -alpha         # upper diagonal
-    ab[1, :] = 1 + 2 * alpha   # main diagonal
-    ab[2, :-1] = -alpha        # lower diagonal
+    ab[0, 1:] = -alpha
+    ab[1, :] = 1 + 2 * alpha
+    ab[2, :-1] = -alpha
 
     # ------------------------------------------------------------
-    # Storage arrays
+    # Storage
     # ------------------------------------------------------------
     i = np.zeros(Nt)
     Cred_surf = np.zeros(Nt)
@@ -129,47 +100,56 @@ def run_classic_cv(
     }
 
     # ------------------------------------------------------------
-    # Time-stepping loop
+    # Time stepping
     # ------------------------------------------------------------
     for k in range(Nt):
 
         # -----------------------------
-        # Nernst boundary at x = 0
+        # Apply Nernst boundary
         # -----------------------------
-        C0_total = C[0]
         ratio = np.exp((F / (R * T)) * (E[k] - E0))
-        Cred0 = C0_total / (1 + ratio)
-        Cox0 = C0_total - Cred0
+
+        # Total concentration at surface comes from diffusion
+        Ctot0 = Cred[0] + Cox[0]
+
+        Cred0 = Ctot0 / (1 + ratio)
+        Cox0 = Ctot0 - Cred0
 
         Cred_surf[k] = Cred0
         Cox_surf[k] = Cox0
 
         # -----------------------------
-        # Flux and current (Fick's first law)
+        # Compute flux and current
         # -----------------------------
-        dCdx = (C[1] - C[0]) / dx
-        i[k] = -F * A * D * dCdx
+        dCred_dx = (Cred[1] - Cred[0]) / dx
+        i[k] = -F * A * D * dCred_dx
 
         # -----------------------------
-        # Right-hand side for CN
+        # Diffusion update (CN)
         # -----------------------------
-        rhs = np.copy(C)
-        rhs[1:-1] = (
-            alpha * C[:-2] +
-            (1 - 2 * alpha) * C[1:-1] +
-            alpha * C[2:]
+        # Reduced species
+        rhs_r = Cred.copy()
+        rhs_r[1:-1] = (
+            alpha * Cred[:-2] +
+            (1 - 2 * alpha) * Cred[1:-1] +
+            alpha * Cred[2:]
         )
+        rhs_r[0] = Cred0
+        rhs_r[-1] = C_bulk
 
-        # Boundary conditions:
-        # x = 0: total concentration at surface = Cred0 + Cox0 = C0_total
-        rhs[0] = Cred0 + Cox0
-        # x = x_max: concentration fixed at bulk
-        rhs[-1] = C_bulk
+        Cred = solve_banded((1, 1), ab, rhs_r)
 
-        # -----------------------------
-        # Solve CN step
-        # -----------------------------
-        C = solve_banded((1, 1), ab, rhs)
+        # Oxidized species
+        rhs_o = Cox.copy()
+        rhs_o[1:-1] = (
+            alpha * Cox[:-2] +
+            (1 - 2 * alpha) * Cox[1:-1] +
+            alpha * Cox[2:]
+        )
+        rhs_o[0] = Cox0
+        rhs_o[-1] = 0.0
+
+        Cox = solve_banded((1, 1), ab, rhs_o)
 
         # -----------------------------
         # Snapshots
@@ -178,8 +158,8 @@ def run_classic_cv(
             for ts in snapshot_times:
                 if abs(t[k] - ts) < dt / 2:
                     snaps["times"].append(t[k])
-                    snaps["Cred_profiles"].append(C.copy())
-                    snaps["Cox_profiles"].append(C_bulk - C.copy())
+                    snaps["Cred_profiles"].append(Cred.copy())
+                    snaps["Cox_profiles"].append(Cox.copy())
 
         # -----------------------------
         # Progress callback
