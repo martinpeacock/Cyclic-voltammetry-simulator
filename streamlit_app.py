@@ -1,0 +1,105 @@
+import streamlit as st
+import plotly.express as px
+import numpy as np
+
+from ReversibleCV_ClassicPeak_v2.3.1 import run_classic_cv
+
+st.set_page_config(page_title="Cyclic Voltammetry Simulator", layout="wide")
+
+st.title("🔬 Cyclic Voltammetry Simulator")
+st.markdown("### Classic Reversible CV (Model A, v2.3.1)")
+
+
+# ------------------------------------------------------------
+# Sidebar controls
+# ------------------------------------------------------------
+st.sidebar.header("Simulation Parameters")
+
+E_start = st.sidebar.number_input("Start Potential (V)", value=-0.2)
+E_vertex = st.sidebar.number_input("Vertex Potential (V)", value=0.4)
+E_end = st.sidebar.number_input("End Potential (V)", value=-0.2)
+
+v = st.sidebar.slider("Scan Rate (V/s)", 0.1, 10.0, 2.0)
+dt = st.sidebar.number_input("Time Step (s)", value=2e-5, format="%.1e")
+t_eq = st.sidebar.number_input("Equilibration Time (s)", value=1.0)
+
+D = st.sidebar.number_input("Diffusion Coefficient (m²/s)", value=4e-11, format="%.1e")
+C_bulk = st.sidebar.number_input("Bulk Concentration (mol/m³)", value=1.0)
+A = st.sidebar.number_input("Electrode Area (m²)", value=1.96e-6, format="%.2e")
+
+E0 = st.sidebar.number_input("Formal Potential (V)", value=0.1)
+T = st.sidebar.number_input("Temperature (K)", value=298.15)
+
+x_max = st.sidebar.number_input("Domain Size (m)", value=7e-4, format="%.1e")
+Nx = st.sidebar.number_input("Grid Points", value=400)
+
+
+# ------------------------------------------------------------
+# Run simulation button
+# ------------------------------------------------------------
+if st.button("Run Simulation"):
+
+    # Progress bar
+    progress_bar = st.progress(0)
+
+    def progress_callback(k, n_steps):
+        progress_bar.progress((k + 1) / n_steps)
+
+    # Run simulation
+    E, i, t, Cred, Cox, snaps = run_classic_cv(
+        E_start=E_start,
+        E_vertex=E_vertex,
+        E_end=E_end,
+        v=v,
+        dt=dt,
+        t_eq=t_eq,
+        D=D,
+        C_bulk=C_bulk,
+        A=A,
+        E0=E0,
+        T=T,
+        x_max=x_max,
+        Nx=Nx,
+        snapshot_times=[t_eq + 0.25*(abs(E_vertex-E_start)/v),
+                        t_eq + 0.5*(abs(E_vertex-E_start)/v),
+                        t_eq + abs(E_vertex-E_start)/v + 0.5*(abs(E_vertex-E_end)/v)],
+        progress_callback=progress_callback
+    )
+
+    st.success("Simulation complete!")
+
+    # ------------------------------------------------------------
+    # Tabs for plots
+    # ------------------------------------------------------------
+    tab1, tab2, tab3 = st.tabs(["Voltammogram", "Surface Concentrations", "Depletion Profiles"])
+
+    # --- Tab 1: CV ---
+    with tab1:
+        fig_cv = px.line(x=E, y=i, labels={"x": "E (V)", "y": "i (A)"},
+                         title="Cyclic Voltammogram (Model A)")
+        st.plotly_chart(fig_cv, use_container_width=True)
+
+    # --- Tab 2: Surface concentrations ---
+    with tab2:
+        fig_surf = px.line(x=t, y=np.vstack([Cred, Cox]).T,
+                           labels={"x": "time (s)", "value": "Concentration (mol/m³)"},
+                           title="Surface Concentrations vs Time")
+        fig_surf.update_layout(legend=dict(title="Species", itemsizing="constant"))
+        fig_surf.data[0].name = "C_red(0,t)"
+        fig_surf.data[1].name = "C_ox(0,t)"
+        st.plotly_chart(fig_surf, use_container_width=True)
+
+    # --- Tab 3: Depletion profiles ---
+    with tab3:
+        if snaps["x"] is not None:
+            fig_dep = px.line(
+                x=snaps["x"],
+                y=np.vstack(snaps["Cred_profiles"]).T,
+                labels={"x": "x (m)", "value": "C_red(x,t)"},
+                title="Depletion Profiles at Selected Times"
+            )
+            for idx, ts in enumerate(snaps["times"]):
+                fig_dep.data[idx].name = f"t = {ts:.2f} s"
+            st.plotly_chart(fig_dep, use_container_width=True)
+        else:
+            st.info("No snapshots available.")
