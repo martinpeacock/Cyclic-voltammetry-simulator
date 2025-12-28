@@ -78,11 +78,12 @@ if st.button("Run Simulation"):
 
     # --- Tab 1: CV ---
     with tab1:
-        fig_cv = px.line(
-            x=E,
-            y=1e6 * (-i),  # Convert to microamperes
-            labels={"x": "E (V)", "y": "i (μA)"},
-            title="Cyclic Voltammogram (Model A)"
+      fig_cv = px.line(
+        x=E,
+        y=1e6 * i,  # or -i if you prefer oxidation-positive visually
+        labels={"x": "E (V)", "y": "i (μA)"},
+        title="Cyclic Voltammogram (Model A)"
+)
         )
         st.plotly_chart(fig_cv, use_container_width=True)
 
