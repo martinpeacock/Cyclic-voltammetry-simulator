@@ -122,7 +122,12 @@ def run_classic_cv(
         # Compute flux and current
         # -----------------------------
         dCred_dx = (Cred[1] - Cred[0]) / dx
-        i[k] = -F * A * D * dCred_dx
+        dCox_dx  = (Cox[1]  - Cox[0])  / dx
+        
+        J_red = -D * dCred_dx
+        J_ox  = -D * dCox_dx
+        
+        i[k] = F * A * (J_ox - J_red)
 
         # -----------------------------
         # Diffusion update (CN)
@@ -168,3 +173,4 @@ def run_classic_cv(
             progress_callback(k, Nt)
 
     return E, i, t, Cred_surf, Cox_surf, snaps
+
