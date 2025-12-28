@@ -79,13 +79,14 @@ if st.button("Run Simulation"):
     # --- Tab 1: CV ---
     with tab1:
         fig_cv = px.line(
-            x=E, y=i,
-            labels={"x": "E (V)", "y": "i (A)"},
+            x=E,
+            y=1e6 * i,  # Convert to microamperes
+            labels={"x": "E (V)", "y": "i (μA)"},
             title="Cyclic Voltammogram (Model A)"
         )
         st.plotly_chart(fig_cv, use_container_width=True)
 
-    # --- Tab 2: Surface concentrations (FIXED) ---
+    # --- Tab 2: Surface concentrations ---
     with tab2:
         df_surf = pd.DataFrame({
             "time": t,
