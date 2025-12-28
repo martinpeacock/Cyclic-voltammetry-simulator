@@ -1,187 +1,131 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sun Dec 28 17:51:46 2025
+Created on Sun Dec 28 19:22:15 2025
 
 @author: martp
 """
 
-"""
-ReversibleCV_ClassicPeak_v2.3.1
---------------------------------
-Classic reversible cyclic voltammetry simulator (Model A).
-
-Features:
-- Semi-infinite diffusion domain
-- Global Nernst boundary condition
-- Transient peak-shaped CV (Randles–Ševčík regime)
-- Depletion layer snapshots for teaching
-- Streamlit-ready (no plotting)
-- Optional progress callback for Streamlit progress bar
-
-Author: Martin + Copilot
-Version: v2.3.1
-"""
-
+import streamlit as st
+import plotly.express as px
 import numpy as np
-from scipy.linalg import solve_banded
+import pandas as pd
 
-F = 96485.3329
-R = 8.314462618
+from ReversibleCV_ClassicPeak_v2_3_1 import run_classic_cv
 
+st.set_page_config(page_title="Cyclic Voltammetry Simulator", layout="wide")
 
-# ------------------------------------------------------------
-# 1. Generate CV waveform
-# ------------------------------------------------------------
-def generate_potential_waveform(E_start, E_vertex, E_end, v, dt, t_eq):
-    n_eq = int(np.ceil(t_eq / dt))
-    E_eq = np.full(n_eq, E_start)
-
-    t_forward = abs(E_vertex - E_start) / v
-    n_forward = int(np.ceil(t_forward / dt))
-    E_forward = np.linspace(E_start, E_vertex, n_forward, endpoint=False)
-
-    t_reverse = abs(E_vertex - E_end) / v
-    n_reverse = int(np.ceil(t_reverse / dt))
-    E_reverse = np.linspace(E_vertex, E_end, n_reverse + 1)
-
-    E = np.concatenate([E_eq, E_forward, E_reverse])
-    t = np.arange(len(E)) * dt
-    return E, t
+st.title("🔬 Cyclic Voltammetry Simulator")
+st.markdown("### Classic Reversible CV (Model A, v2.3.1)")
 
 
 # ------------------------------------------------------------
-# 2. Crank–Nicolson diffusion step
+# Sidebar controls
 # ------------------------------------------------------------
-def crank_nicolson_step(C_old, lam):
-    N = len(C_old)
-    ab = np.zeros((3, N - 2))
-    ab[0, 1:] = -lam / 2.0
-    ab[1, :] = 1.0 + lam
-    ab[2, :-1] = -lam / 2.0
+st.sidebar.header("Simulation Parameters")
 
-    rhs = C_old[1:-1].copy()
-    rhs += lam / 2.0 * (C_old[2:] - 2.0 * C_old[1:-1] + C_old[:-2])
+E_start = st.sidebar.number_input("Start Potential (V)", value=-0.2)
+E_vertex = st.sidebar.number_input("Vertex Potential (V)", value=0.4)
+E_end = st.sidebar.number_input("End Potential (V)", value=-0.2)
 
-    C_inner_new = solve_banded((1, 1), ab, rhs)
+v = st.sidebar.slider("Scan Rate (V/s)", 0.1, 10.0, 2.0)
+dt = st.sidebar.number_input("Time Step (s)", value=2e-5, format="%.1e")
+t_eq = st.sidebar.number_input("Equilibration Time (s)", value=1.0)
 
-    C_new = C_old.copy()
-    C_new[1:-1] = C_inner_new
-    return C_new
+D = st.sidebar.number_input("Diffusion Coefficient (m²/s)", value=4e-11, format="%.1e")
+C_bulk = st.sidebar.number_input("Bulk Concentration (mol/m³)", value=1.0)
+A = st.sidebar.number_input("Electrode Area (m²)", value=1.96e-6, format="%.2e")
 
+E0 = st.sidebar.number_input("Formal Potential (V)", value=0.1)
+T = st.sidebar.number_input("Temperature (K)", value=298.15)
 
-# ------------------------------------------------------------
-# 3. Classic reversible CV (semi-infinite, global Nernst)
-# ------------------------------------------------------------
-def simulate_cv_reversible_classic(
-    E, t,
-    D=4e-11, C_bulk=1.0, A=1.96e-6, n=1,
-    E0=0.1, T=298.15, x_max=7e-4, Nx=400,
-    snapshot_times=None,
-    progress_callback=None
-):
-    dt = t[1] - t[0]
-    dx = x_max / (Nx - 1)
-    lam = D * dt / dx**2
-
-    C_red = np.full(Nx, C_bulk)
-    C_ox = np.zeros(Nx)
-
-    i = np.zeros_like(t)
-    Cred_surf = np.zeros_like(t)
-    Cox_surf = np.zeros_like(t)
-
-    beta = n * F / (R * T)
-    n_steps = len(t)
-
-    # Snapshot setup
-    if snapshot_times is None:
-        snapshot_times = []
-    snapshot_indices = [np.argmin(np.abs(t - ts)) for ts in snapshot_times]
-
-    snapshots = {
-        "times": [],
-        "x": None,
-        "Cred_profiles": [],
-        "Cox_profiles": []
-    }
-
-    for k in range(n_steps):
-
-        # Streamlit progress callback
-        if progress_callback is not None:
-            progress_callback(k, n_steps)
-
-        E_k = E[k]
-        exponent = np.clip(beta * (E_k - E0), -50, 50)
-        K = np.exp(exponent)
-
-        # Global Nernst: total analyte = C_bulk
-        C_red0 = C_bulk / (1.0 + K)
-        C_ox0 = C_bulk - C_red0
-
-        # Boundary conditions
-        C_red[0] = C_red0
-        C_ox[0] = C_ox0
-        C_red[-1] = C_bulk
-        C_ox[-1] = 0.0
-
-        # Diffusion update
-        C_red = crank_nicolson_step(C_red, lam)
-        C_ox = crank_nicolson_step(C_ox, lam)
-
-        # Reapply BCs
-        C_red[0] = C_red0
-        C_ox[0] = C_ox0
-        C_red[-1] = C_bulk
-        C_ox[-1] = 0.0
-
-        # Surface concentrations
-        Cred_surf[k] = C_red[0]
-        Cox_surf[k] = C_ox[0]
-
-        # Flux and current
-        dCred_dx_0 = (C_red[1] - C_red[0]) / dx
-        j_red = -D * dCred_dx_0
-        i[k] = -n * F * A * j_red
-
-        # Save snapshots
-        if k in snapshot_indices:
-            if snapshots["x"] is None:
-                snapshots["x"] = np.linspace(0, x_max, Nx)
-            snapshots["times"].append(t[k])
-            snapshots["Cred_profiles"].append(C_red.copy())
-            snapshots["Cox_profiles"].append(C_ox.copy())
-
-    return E, i, t, Cred_surf, Cox_surf, snapshots
+x_max = st.sidebar.number_input("Domain Size (m)", value=7e-4, format="%.1e")
+Nx = st.sidebar.number_input("Grid Points", value=400)
 
 
 # ------------------------------------------------------------
-# 4. Streamlit-friendly wrapper
+# Run simulation button
 # ------------------------------------------------------------
-def run_classic_cv(
-    E_start=-0.2,
-    E_vertex=0.4,
-    E_end=-0.2,
-    v=2.0,
-    dt=2e-5,
-    t_eq=1.0,
-    D=4e-11,
-    C_bulk=1.0,
-    A=1.96e-6,
-    n=1,
-    E0=0.1,
-    T=298.15,
-    x_max=7e-4,
-    Nx=400,
-    snapshot_times=None,
-    progress_callback=None
-):
-    E, t = generate_potential_waveform(E_start, E_vertex, E_end, v, dt, t_eq)
+if st.button("Run Simulation"):
 
-    return simulate_cv_reversible_classic(
-        E, t,
-        D=D, C_bulk=C_bulk, A=A, n=n,
-        E0=E0, T=T, x_max=x_max, Nx=Nx,
-        snapshot_times=snapshot_times,
+    # Progress bar
+    progress_bar = st.progress(0)
+
+    def progress_callback(k, n_steps):
+        progress_bar.progress((k + 1) / n_steps)
+
+    # Run simulation
+    E, i, t, Cred, Cox, snaps = run_classic_cv(
+        E_start=E_start,
+        E_vertex=E_vertex,
+        E_end=E_end,
+        v=v,
+        dt=dt,
+        t_eq=t_eq,
+        D=D,
+        C_bulk=C_bulk,
+        A=A,
+        E0=E0,
+        T=T,
+        x_max=x_max,
+        Nx=Nx,
+        snapshot_times=[
+            t_eq + 0.25 * (abs(E_vertex - E_start) / v),
+            t_eq + 0.50 * (abs(E_vertex - E_start) / v),
+            t_eq + abs(E_vertex - E_start) / v + 0.5 * (abs(E_vertex - E_end) / v)
+        ],
         progress_callback=progress_callback
     )
+
+    st.success("Simulation complete!")
+
+    # ------------------------------------------------------------
+    # Tabs for plots
+    # ------------------------------------------------------------
+    tab1, tab2, tab3 = st.tabs(["Voltammogram", "Surface Concentrations", "Depletion Profiles"])
+
+    # --- Tab 1: CV ---
+    with tab1:
+        fig_cv = px.line(
+            x=E, y=i,
+            labels={"x": "E (V)", "y": "i (A)"},
+            title="Cyclic Voltammogram (Model A)"
+        )
+        st.plotly_chart(fig_cv, use_container_width=True)
+
+    # --- Tab 2: Surface concentrations (FIXED) ---
+    with tab2:
+        df_surf = pd.DataFrame({
+            "time": t,
+            "C_red(0,t)": Cred,
+            "C_ox(0,t)": Cox
+        })
+
+        fig_surf = px.line(
+            df_surf,
+            x="time",
+            y=["C_red(0,t)", "C_ox(0,t)"],
+            labels={"value": "Concentration (mol/m³)", "time": "Time (s)"},
+            title="Surface Concentrations vs Time"
+        )
+
+        st.plotly_chart(fig_surf, use_container_width=True)
+
+    # --- Tab 3: Depletion profiles ---
+    with tab3:
+        if snaps["x"] is not None:
+            # Build a DataFrame for depletion profiles
+            df_dep = pd.DataFrame({"x": snaps["x"]})
+            for idx, profile in enumerate(snaps["Cred_profiles"]):
+                df_dep[f"t = {snaps['times'][idx]:.2f} s"] = profile
+
+            fig_dep = px.line(
+                df_dep,
+                x="x",
+                y=df_dep.columns[1:],  # all profile columns
+                labels={"value": "C_red(x,t)", "x": "x (m)"},
+                title="Depletion Profiles at Selected Times"
+            )
+
+            st.plotly_chart(fig_dep, use_container_width=True)
+        else:
+            st.info("No snapshots available.")
