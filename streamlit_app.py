@@ -1,8 +1,8 @@
 import streamlit as st
 import plotly.express as px
 import numpy as np
+import pandas as pd
 
-# Corrected import — matches your renamed file
 from ReversibleCV_ClassicPeak_v2_3_1 import run_classic_cv
 
 st.set_page_config(page_title="Cyclic Voltammetry Simulator", layout="wide")
@@ -85,35 +85,39 @@ if st.button("Run Simulation"):
         )
         st.plotly_chart(fig_cv, use_container_width=True)
 
-   # --- Tab 2: Surface concentrations (FIXED) ---
-with tab2:
-    df_surf = pd.DataFrame({
-        "time": t,
-        "C_red(0,t)": Cred,
-        "C_ox(0,t)": Cox
-    })
+    # --- Tab 2: Surface concentrations (FIXED) ---
+    with tab2:
+        df_surf = pd.DataFrame({
+            "time": t,
+            "C_red(0,t)": Cred,
+            "C_ox(0,t)": Cox
+        })
 
-    fig_surf = px.line(
-        df_surf,
-        x="time",
-        y=["C_red(0,t)", "C_ox(0,t)"],
-        labels={"value": "Concentration (mol/m³)", "time": "Time (s)"},
-        title="Surface Concentrations vs Time"
-    )
+        fig_surf = px.line(
+            df_surf,
+            x="time",
+            y=["C_red(0,t)", "C_ox(0,t)"],
+            labels={"value": "Concentration (mol/m³)", "time": "Time (s)"},
+            title="Surface Concentrations vs Time"
+        )
 
-    st.plotly_chart(fig_surf, use_container_width=True)
+        st.plotly_chart(fig_surf, use_container_width=True)
 
     # --- Tab 3: Depletion profiles ---
     with tab3:
         if snaps["x"] is not None:
+            df_dep = pd.DataFrame({"x": snaps["x"]})
+            for idx, profile in enumerate(snaps["Cred_profiles"]):
+                df_dep[f"t = {snaps['times'][idx]:.2f} s"] = profile
+
             fig_dep = px.line(
-                x=snaps["x"],
-                y=np.vstack(snaps["Cred_profiles"]).T,
-                labels={"x": "x (m)", "value": "C_red(x,t)"},
+                df_dep,
+                x="x",
+                y=df_dep.columns[1:],
+                labels={"value": "C_red(x,t)", "x": "x (m)"},
                 title="Depletion Profiles at Selected Times"
             )
-            for idx, ts in enumerate(snaps["times"]):
-                fig_dep.data[idx].name = f"t = {ts:.2f} s"
+
             st.plotly_chart(fig_dep, use_container_width=True)
         else:
             st.info("No snapshots available.")
