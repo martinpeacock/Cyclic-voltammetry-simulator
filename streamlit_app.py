@@ -85,17 +85,23 @@ if st.button("Run Simulation"):
         )
         st.plotly_chart(fig_cv, use_container_width=True)
 
-    # --- Tab 2: Surface concentrations ---
-    with tab2:
-        fig_surf = px.line(
-            x=t,
-            y=np.vstack([Cred, Cox]).T,
-            labels={"x": "time (s)", "value": "Concentration (mol/m³)"},
-            title="Surface Concentrations vs Time"
-        )
-        fig_surf.data[0].name = "C_red(0,t)"
-        fig_surf.data[1].name = "C_ox(0,t)"
-        st.plotly_chart(fig_surf, use_container_width=True)
+   # --- Tab 2: Surface concentrations (FIXED) ---
+with tab2:
+    df_surf = pd.DataFrame({
+        "time": t,
+        "C_red(0,t)": Cred,
+        "C_ox(0,t)": Cox
+    })
+
+    fig_surf = px.line(
+        df_surf,
+        x="time",
+        y=["C_red(0,t)", "C_ox(0,t)"],
+        labels={"value": "Concentration (mol/m³)", "time": "Time (s)"},
+        title="Surface Concentrations vs Time"
+    )
+
+    st.plotly_chart(fig_surf, use_container_width=True)
 
     # --- Tab 3: Depletion profiles ---
     with tab3:
