@@ -10,7 +10,6 @@ st.set_page_config(page_title="Cyclic Voltammetry Simulator", layout="wide")
 st.title("🔬 Cyclic Voltammetry Simulator")
 st.markdown("### Classic Reversible CV (Model A, v2.3.1)")
 
-
 # ------------------------------------------------------------
 # Sidebar controls
 # ------------------------------------------------------------
@@ -33,7 +32,6 @@ T = st.sidebar.number_input("Temperature (K)", value=298.15)
 
 x_max = st.sidebar.number_input("Domain Size (m)", value=7e-4, format="%.1e")
 Nx = st.sidebar.number_input("Grid Points", value=400)
-
 
 # ------------------------------------------------------------
 # Run simulation button
@@ -78,12 +76,11 @@ if st.button("Run Simulation"):
 
     # --- Tab 1: CV ---
     with tab1:
-      fig_cv = px.line(
-        x=E,
-        y=1e6 * i,  # or -i if you prefer oxidation-positive visually
-        labels={"x": "E (V)", "y": "i (μA)"},
-        title="Cyclic Voltammogram (Model A)"
-)
+        fig_cv = px.line(
+            x=E,
+            y=1e6 * i,   # flip sign here if you want oxidation-positive visually
+            labels={"x": "E (V)", "y": "i (μA)"},
+            title="Cyclic Voltammogram (Model A)"
         )
         st.plotly_chart(fig_cv, use_container_width=True)
 
