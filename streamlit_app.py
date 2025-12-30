@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Dec 30 18:33:41 2025
+Created on Tue Dec 30 18:45:36 2025
 
 @author: martp
 """
@@ -15,7 +15,7 @@ from ReversibleCV_ClassicPeak_v2_3_1 import run_classic_cv
 st.set_page_config(page_title="Cyclic Voltammetry Simulator", layout="wide")
 
 st.title("🔬 Cyclic Voltammetry Simulator")
-st.markdown("### Classic Reversible CV (Model A, v2.3.2)")
+st.markdown("### Classic Reversible CV (Model A, v2.3.3)")
 
 # ------------------------------------------------------------
 # Sidebar controls
@@ -87,12 +87,12 @@ if st.button("Run Simulation"):
             x=E,
             y=1e6 * i,
             labels={"x": "E (V)", "y": "i (μA)"},
-            title="Cyclic Voltammogram (Model A, v2.3.2)"
+            title="Cyclic Voltammogram (Model A, v2.3.3)"
         )
 
-        # Classical CV look: squash x-axis and tighten layout
+        # Squash x-axis to match actual simulation range
         fig_cv.update_layout(
-            xaxis_range=[E_start, E_end],
+            xaxis_range=[min(E), max(E)],
             width=600,
             height=450,
             margin=dict(l=20, r=20, t=40, b=20)
