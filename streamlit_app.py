@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Dec 30 18:33:41 2025
+
+@author: martp
+"""
+
 import streamlit as st
 import plotly.express as px
 import numpy as np
@@ -8,7 +15,7 @@ from ReversibleCV_ClassicPeak_v2_3_1 import run_classic_cv
 st.set_page_config(page_title="Cyclic Voltammetry Simulator", layout="wide")
 
 st.title("🔬 Cyclic Voltammetry Simulator")
-st.markdown("### Classic Reversible CV (Model A, v2.3.1)")
+st.markdown("### Classic Reversible CV (Model A, v2.3.2)")
 
 # ------------------------------------------------------------
 # Sidebar controls
@@ -78,10 +85,19 @@ if st.button("Run Simulation"):
     with tab1:
         fig_cv = px.line(
             x=E,
-            y=1e6 * i,   # flip sign here if you want oxidation-positive visually
+            y=1e6 * i,
             labels={"x": "E (V)", "y": "i (μA)"},
-            title="Cyclic Voltammogram (Model A)"
+            title="Cyclic Voltammogram (Model A, v2.3.2)"
         )
+
+        # Classical CV look: squash x-axis and tighten layout
+        fig_cv.update_layout(
+            xaxis_range=[E_start, E_end],
+            width=600,
+            height=450,
+            margin=dict(l=20, r=20, t=40, b=20)
+        )
+
         st.plotly_chart(fig_cv, use_container_width=True)
 
     # --- Tab 2: Surface concentrations ---
