@@ -1,9 +1,16 @@
+# -*- coding: utf-8 -*-
 """
-ReversibleCV_ClassicPeak_v2.3.1
+Created on Tue Dec 30 19:10:59 2025
+
+@author: martp
+"""
+
+"""
+ReversibleCV_ClassicPeak_v2.3.2
 --------------------------------
 Classic reversible cyclic voltammetry simulator (Model A).
 Implements 1D diffusion with a *correct* Nernst boundary condition
-that allows surface depletion and produces a physically accurate CV.
+and computes current from net Faradaic flux for physical accuracy.
 """
 
 import numpy as np
@@ -11,7 +18,6 @@ from scipy.linalg import solve_banded
 
 F = 96485.3329
 R = 8.314462618
-
 
 def run_classic_cv(
     E_start,
@@ -109,9 +115,7 @@ def run_classic_cv(
         # -----------------------------
         ratio = np.exp((F / (R * T)) * (E[k] - E0))
 
-        # Total concentration at surface comes from diffusion
         Ctot0 = Cred[0] + Cox[0]
-
         Cred0 = Ctot0 / (1 + ratio)
         Cox0 = Ctot0 - Cred0
 
@@ -119,14 +123,14 @@ def run_classic_cv(
         Cox_surf[k] = Cox0
 
         # -----------------------------
-        # Compute flux and current
+        # Compute net Faradaic current
         # -----------------------------
         dCred_dx = (Cred[1] - Cred[0]) / dx
         dCox_dx  = (Cox[1]  - Cox[0])  / dx
-        
+
         J_red = -D * dCred_dx
         J_ox  = -D * dCox_dx
-        
+
         i[k] = F * A * (J_ox - J_red)
 
         # -----------------------------
@@ -173,4 +177,3 @@ def run_classic_cv(
             progress_callback(k, Nt)
 
     return E, i, t, Cred_surf, Cox_surf, snaps
-
