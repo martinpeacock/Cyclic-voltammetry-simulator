@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Dec 30 19:55:04 2025
+Created on Tue Dec 30 20:01:08 2025
 
 @author: martp
 """
@@ -45,7 +45,6 @@ Nx = st.sidebar.number_input("Grid Points", value=400)
 # ------------------------------------------------------------
 if st.button("Run Simulation"):
 
-    # Progress bar
     progress_bar = st.progress(0)
 
     def progress_callback(k, n_steps):
@@ -81,7 +80,9 @@ if st.button("Run Simulation"):
     # ------------------------------------------------------------
     tab1, tab2, tab3 = st.tabs(["Voltammogram", "Surface Concentrations", "Depletion Profiles"])
 
-    # --- Tab 1: CV ---
+    # ------------------------------------------------------------
+    # Tab 1: CV
+    # ------------------------------------------------------------
     with tab1:
         fig_cv = px.line(
             x=E,
@@ -90,8 +91,58 @@ if st.button("Run Simulation"):
             title="Cyclic Voltammogram (Model A, v2.3.5)"
         )
 
-        # Match axis to actual simulation range, allow manual zooming
         fig_cv.update_layout(
             xaxis_range=[min(E), max(E)],
             width=600,
-           
+            height=450,
+            margin=dict(l=20, r=20, t=40, b=20)
+        )
+
+        st.plotly_chart(
+            fig_cv,
+            use_container_width=True,
+            config={"scrollZoom": True}
+        )
+
+    # ------------------------------------------------------------
+    # Tab 2: Surface concentrations
+    # ------------------------------------------------------------
+    with tab2:
+        df_surf = pd.DataFrame({
+            "time": t,
+            "C_red(0,t)": Cred,
+            "C_ox(0,t)": Cox
+        })
+
+        fig_surf = px.line(
+            df_surf,
+            x="time",
+            y=["C_red(0,t)", "C_ox(0,t)"],
+            labels={"value": "Concentration (mol/m³)", "time": "Time (s)"},
+            title="Surface Concentrations vs Time"
+        )
+
+        st.plotly_chart(fig_surf, use_container_width=True)
+
+    # ------------------------------------------------------------
+    # Tab 3: Depletion profiles
+    # ------------------------------------------------------------
+    with tab3:
+        if snaps["x"] is not None:
+            df_dep = pd.DataFrame({"x": snaps["x"]})
+
+            for idx, profile in enumerate(snaps["Cred_profiles"]):
+                df_dep[f"t = {snaps['times'][idx]:.2f} s"] = profile
+
+            fig_dep = px.line(
+                df_dep,
+                x="x",
+                y=df_dep.columns[1:],
+                labels={"value": "C_red(x,t)", "x": "x (m)"},
+                title="Depletion Profiles at Selected Times"
+            )
+
+            st.plotly_chart(fig_dep, use_container_width=True)
+
+        else:
+            st.info("No snapshots available.")
