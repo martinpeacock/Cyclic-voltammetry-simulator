@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Dec 30 18:57:14 2025
+Created on Tue Dec 30 19:55:04 2025
 
 @author: martp
 """
@@ -10,12 +10,12 @@ import plotly.express as px
 import numpy as np
 import pandas as pd
 
-from ReversibleCV_ClassicPeak_v2_3_1 import run_classic_cv
+from ReversibleCV_ClassicPeak_v2_3_2 import run_classic_cv
 
 st.set_page_config(page_title="Cyclic Voltammetry Simulator", layout="wide")
 
 st.title("🔬 Cyclic Voltammetry Simulator")
-st.markdown("### Classic Reversible CV (Model A, v2.3.4)")
+st.markdown("### Classic Reversible CV (Model A, v2.3.5)")
 
 # ------------------------------------------------------------
 # Sidebar controls
@@ -87,52 +87,11 @@ if st.button("Run Simulation"):
             x=E,
             y=1e6 * i,
             labels={"x": "E (V)", "y": "i (μA)"},
-            title="Cyclic Voltammogram (Model A, v2.3.4)"
+            title="Cyclic Voltammogram (Model A, v2.3.5)"
         )
 
         # Match axis to actual simulation range, allow manual zooming
         fig_cv.update_layout(
             xaxis_range=[min(E), max(E)],
             width=600,
-            height=450,
-            margin=dict(l=20, r=20, t=40, b=20)
-        )
-
-        st.plotly_chart(fig_cv, use_container_width=True, config={"scrollZoom": True})
-
-    # --- Tab 2: Surface concentrations ---
-    with tab2:
-        df_surf = pd.DataFrame({
-            "time": t,
-            "C_red(0,t)": Cred,
-            "C_ox(0,t)": Cox
-        })
-
-        fig_surf = px.line(
-            df_surf,
-            x="time",
-            y=["C_red(0,t)", "C_ox(0,t)"],
-            labels={"value": "Concentration (mol/m³)", "time": "Time (s)"},
-            title="Surface Concentrations vs Time"
-        )
-
-        st.plotly_chart(fig_surf, use_container_width=True)
-
-    # --- Tab 3: Depletion profiles ---
-    with tab3:
-        if snaps["x"] is not None:
-            df_dep = pd.DataFrame({"x": snaps["x"]})
-            for idx, profile in enumerate(snaps["Cred_profiles"]):
-                df_dep[f"t = {snaps['times'][idx]:.2f} s"] = profile
-
-            fig_dep = px.line(
-                df_dep,
-                x="x",
-                y=df_dep.columns[1:],
-                labels={"value": "C_red(x,t)", "x": "x (m)"},
-                title="Depletion Profiles at Selected Times"
-            )
-
-            st.plotly_chart(fig_dep, use_container_width=True)
-        else:
-            st.info("No snapshots available.")
+           
