@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Dec 30 18:45:36 2025
+Created on Tue Dec 30 18:57:14 2025
 
 @author: martp
 """
@@ -15,7 +15,7 @@ from ReversibleCV_ClassicPeak_v2_3_1 import run_classic_cv
 st.set_page_config(page_title="Cyclic Voltammetry Simulator", layout="wide")
 
 st.title("🔬 Cyclic Voltammetry Simulator")
-st.markdown("### Classic Reversible CV (Model A, v2.3.3)")
+st.markdown("### Classic Reversible CV (Model A, v2.3.4)")
 
 # ------------------------------------------------------------
 # Sidebar controls
@@ -87,10 +87,10 @@ if st.button("Run Simulation"):
             x=E,
             y=1e6 * i,
             labels={"x": "E (V)", "y": "i (μA)"},
-            title="Cyclic Voltammogram (Model A, v2.3.3)"
+            title="Cyclic Voltammogram (Model A, v2.3.4)"
         )
 
-        # Squash x-axis to match actual simulation range
+        # Match axis to actual simulation range, allow manual zooming
         fig_cv.update_layout(
             xaxis_range=[min(E), max(E)],
             width=600,
@@ -98,7 +98,7 @@ if st.button("Run Simulation"):
             margin=dict(l=20, r=20, t=40, b=20)
         )
 
-        st.plotly_chart(fig_cv, use_container_width=True)
+        st.plotly_chart(fig_cv, use_container_width=True, config={"scrollZoom": True})
 
     # --- Tab 2: Surface concentrations ---
     with tab2:
