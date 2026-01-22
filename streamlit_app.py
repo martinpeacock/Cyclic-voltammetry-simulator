@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Jan 22 16:36:19 2026
-
-@author: martp
-"""
-
 import streamlit as st
 import plotly.express as px
 import numpy as np
@@ -15,7 +8,7 @@ from ReversibleCV_ClassicPeak_v2_3_2 import run_classic_cv
 st.set_page_config(page_title="Cyclic Voltammetry Simulator", layout="wide")
 
 st.title("🔬 Cyclic Voltammetry Simulator")
-st.markdown("### Classic Reversible CV (Model A, v2.3.8)")
+st.markdown("### Classic Reversible CV (Model A, v2.3.9)")
 
 # Sidebar controls
 st.sidebar.header("Simulation Parameters")
@@ -29,8 +22,11 @@ dt = st.sidebar.number_input("Time Step (s)", value=2e-5, format="%.1e")
 t_eq = st.sidebar.number_input("Equilibration Time (s)", value=1.0)
 
 D = st.sidebar.number_input("Diffusion Coefficient (m²/s)", value=4e-11, format="%.1e")
+
+# User-facing units: mM
 C_bulk_mM = st.sidebar.number_input("Bulk Concentration (mM)", value=1.0)
-C_bulk = C_bulk_mM * 1.0   # convert mM → mol/m³ (1:1)
+C_bulk = C_bulk_mM * 1.0   # mM → mol/m³ (1:1)
+
 A = st.sidebar.number_input("Electrode Area (m²)", value=1.96e-6, format="%.2e")
 
 E0 = st.sidebar.number_input("Formal Potential (V)", value=0.1)
@@ -71,24 +67,20 @@ if st.button("Run Simulation"):
 
     st.success("Simulation complete!")
 
-    # ------------------------------------------------------------
-    # Correct baseline: subtract current at the *start of the scan*
-    # ------------------------------------------------------------
+    # Baseline correction at start of scan
     scan_start_index = np.argmin(np.abs(t - t_eq))
     i_corrected = i - i[scan_start_index]
 
     # Tabs
     tab1, tab2, tab3 = st.tabs(["Voltammogram", "Surface Concentrations", "Depletion Profiles"])
 
-    # ------------------------------------------------------------
     # Tab 1: CV
-    # ------------------------------------------------------------
     with tab1:
         fig_cv = px.line(
             x=E,
             y=1e6 * i_corrected,
             labels={"x": "E (V)", "y": "i (μA)"},
-            title="Cyclic Voltammogram (Model A, v2.3.8, baseline-corrected)"
+            title="Cyclic Voltammogram (Model A, v2.3.9, baseline-corrected)"
         )
 
         fig_cv.update_layout(
@@ -100,9 +92,7 @@ if st.button("Run Simulation"):
 
         st.plotly_chart(fig_cv, use_container_width=True, config={"scrollZoom": True})
 
-    # ------------------------------------------------------------
     # Tab 2: Surface concentrations
-    # ------------------------------------------------------------
     with tab2:
         df_surf = pd.DataFrame({
             "time": t,
@@ -120,9 +110,7 @@ if st.button("Run Simulation"):
 
         st.plotly_chart(fig_surf, use_container_width=True)
 
-    # ------------------------------------------------------------
     # Tab 3: Depletion profiles
-    # ------------------------------------------------------------
     with tab3:
         if snaps["x"] is not None:
             df_dep = pd.DataFrame({"x": snaps["x"]})
