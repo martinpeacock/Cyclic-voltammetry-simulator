@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Dec 30 20:01:08 2025
+Created on Thu Jan 22 16:20:43 2026
 
 @author: martp
 """
@@ -15,11 +15,9 @@ from ReversibleCV_ClassicPeak_v2_3_2 import run_classic_cv
 st.set_page_config(page_title="Cyclic Voltammetry Simulator", layout="wide")
 
 st.title("🔬 Cyclic Voltammetry Simulator")
-st.markdown("### Classic Reversible CV (Model A, v2.3.5)")
+st.markdown("### Classic Reversible CV (Model A, v2.3.7)")
 
-# ------------------------------------------------------------
 # Sidebar controls
-# ------------------------------------------------------------
 st.sidebar.header("Simulation Parameters")
 
 E_start = st.sidebar.number_input("Start Potential (V)", value=-0.2)
@@ -40,9 +38,7 @@ T = st.sidebar.number_input("Temperature (K)", value=298.15)
 x_max = st.sidebar.number_input("Domain Size (m)", value=7e-4, format="%.1e")
 Nx = st.sidebar.number_input("Grid Points", value=400)
 
-# ------------------------------------------------------------
-# Run simulation button
-# ------------------------------------------------------------
+# Run simulation
 if st.button("Run Simulation"):
 
     progress_bar = st.progress(0)
@@ -50,7 +46,6 @@ if st.button("Run Simulation"):
     def progress_callback(k, n_steps):
         progress_bar.progress((k + 1) / n_steps)
 
-    # Run simulation
     E, i, t, Cred, Cox, snaps = run_classic_cv(
         E_start=E_start,
         E_vertex=E_vertex,
@@ -75,20 +70,19 @@ if st.button("Run Simulation"):
 
     st.success("Simulation complete!")
 
-    # ------------------------------------------------------------
-    # Tabs for plots
-    # ------------------------------------------------------------
+    # ✅ Baseline correction
+    start_index = np.where(E == E_start)[0][0]
+    i_corrected = i - i[start_index]
+
     tab1, tab2, tab3 = st.tabs(["Voltammogram", "Surface Concentrations", "Depletion Profiles"])
 
-    # ------------------------------------------------------------
     # Tab 1: CV
-    # ------------------------------------------------------------
     with tab1:
         fig_cv = px.line(
             x=E,
-            y=1e6 * i,
+            y=1e6 * i_corrected,
             labels={"x": "E (V)", "y": "i (μA)"},
-            title="Cyclic Voltammogram (Model A, v2.3.5)"
+            title="Cyclic Voltammogram (Model A, v2.3.7, baseline-corrected)"
         )
 
         fig_cv.update_layout(
@@ -98,15 +92,9 @@ if st.button("Run Simulation"):
             margin=dict(l=20, r=20, t=40, b=20)
         )
 
-        st.plotly_chart(
-            fig_cv,
-            use_container_width=True,
-            config={"scrollZoom": True}
-        )
+        st.plotly_chart(fig_cv, use_container_width=True, config={"scrollZoom": True})
 
-    # ------------------------------------------------------------
     # Tab 2: Surface concentrations
-    # ------------------------------------------------------------
     with tab2:
         df_surf = pd.DataFrame({
             "time": t,
@@ -124,9 +112,7 @@ if st.button("Run Simulation"):
 
         st.plotly_chart(fig_surf, use_container_width=True)
 
-    # ------------------------------------------------------------
     # Tab 3: Depletion profiles
-    # ------------------------------------------------------------
     with tab3:
         if snaps["x"] is not None:
             df_dep = pd.DataFrame({"x": snaps["x"]})
@@ -143,6 +129,5 @@ if st.button("Run Simulation"):
             )
 
             st.plotly_chart(fig_dep, use_container_width=True)
-
         else:
             st.info("No snapshots available.")
