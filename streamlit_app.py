@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Jan 22 19:06:05 2026
+
+@author: martp
+"""
+
 import streamlit as st
 import plotly.express as px
 import numpy as np
@@ -24,8 +31,8 @@ v_user = st.sidebar.number_input(
     value=0.10,
     step=0.01
 )
+v = v_user * 10.0  # internal ×10 scaling
 
-v = v_user * 10.0   # your internal ×10 scaling
 dt = st.sidebar.number_input("Time Step (s)", value=2e-5, format="%.1e")
 t_eq = st.sidebar.number_input("Equilibration Time (s)", value=1.0)
 
@@ -36,12 +43,12 @@ D = st.sidebar.number_input(
     help="Typical diffusion coefficient for ferrocyanide in aqueous solution at room temperature."
 )
 
-# User-facing units: mM
+# User-facing units: mM (1 mM ≈ 1 mol/m³)
 C_bulk_mM = st.sidebar.number_input("Bulk Concentration (mM)", value=1.0)
-C_bulk = C_bulk_mM * 1.0   # mM → mol/m³ (1:1)
+C_bulk = C_bulk_mM * 1.0  # mM → mol/m³ (1:1)
 
 A_cm2 = st.sidebar.number_input("Electrode Area (cm²)", value=0.126)
-A = A_cm2 * 1e-4   # convert cm² → m²
+A = A_cm2 * 1e-4  # cm² → m²
 
 E0 = st.sidebar.number_input("Formal Potential (V)", value=0.1)
 T = st.sidebar.number_input("Temperature (K)", value=298.15)
@@ -51,9 +58,8 @@ x_max_um = st.sidebar.number_input(
     value=700.0,
     help="Depth of the simulated solution. Must be much larger than the diffusion layer (~20–50 µm) to avoid boundary artefacts."
 )
+x_max = x_max_um * 1e-6  # µm → m
 
-# Convert µm → m for the physics engine
-x_max = x_max_um * 1e-6
 Nx = st.sidebar.number_input(
     "Grid Points",
     value=400,
@@ -96,20 +102,24 @@ if st.button("Run Simulation"):
     scan_start_index = np.argmin(np.abs(t - t_eq))
     i_corrected = i - i[scan_start_index]
 
+    # Trim equilibration transient: only plot from start of scan onward
+    E_plot = E[scan_start_index:]
+    i_plot = i_corrected[scan_start_index:]
+
     # Tabs
     tab1, tab2, tab3 = st.tabs(["Voltammogram", "Surface Concentrations", "Depletion Profiles"])
 
     # Tab 1: CV
     with tab1:
         fig_cv = px.line(
-            x=E,
-            y=1e6 * i_corrected,
+            x=E_plot,
+            y=1e6 * i_plot,
             labels={"x": "E (V)", "y": "i (μA)"},
             title="Cyclic Voltammogram (Model A, v2.3.9, baseline-corrected)"
         )
 
         fig_cv.update_layout(
-            xaxis_range=[min(E), max(E)],
+            xaxis_range=[min(E_plot), max(E_plot)],
             width=600,
             height=450,
             margin=dict(l=20, r=20, t=40, b=20)
