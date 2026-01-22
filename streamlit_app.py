@@ -17,8 +17,15 @@ E_start = st.sidebar.number_input("Start Potential (V)", value=-0.2)
 E_vertex = st.sidebar.number_input("Vertex Potential (V)", value=0.4)
 E_end = st.sidebar.number_input("End Potential (V)", value=-0.2)
 
-v_user = st.sidebar.number_input("Scan Rate (V/s)", value=1.0)
-v = v_user * 10.0  # multiply user input by 10 before passing to physics engine
+v_user = st.sidebar.number_input(
+    "Scan Rate (V/s)",
+    min_value=0.01,
+    max_value=1.00,
+    value=0.10,
+    step=0.01
+)
+
+v = v_user * 10.0   # your internal ×10 scaling
 dt = st.sidebar.number_input("Time Step (s)", value=2e-5, format="%.1e")
 t_eq = st.sidebar.number_input("Equilibration Time (s)", value=1.0)
 
