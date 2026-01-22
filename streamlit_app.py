@@ -29,7 +29,8 @@ dt = st.sidebar.number_input("Time Step (s)", value=2e-5, format="%.1e")
 t_eq = st.sidebar.number_input("Equilibration Time (s)", value=1.0)
 
 D = st.sidebar.number_input("Diffusion Coefficient (m²/s)", value=4e-11, format="%.1e")
-C_bulk = st.sidebar.number_input("Bulk Concentration (mol/m³)", value=1.0)
+C_bulk_mM = st.sidebar.number_input("Bulk Concentration (mM)", value=1.0)
+C_bulk = C_bulk_mM * 1.0   # convert mM → mol/m³ (1:1)
 A = st.sidebar.number_input("Electrode Area (m²)", value=1.96e-6, format="%.2e")
 
 E0 = st.sidebar.number_input("Formal Potential (V)", value=0.1)
