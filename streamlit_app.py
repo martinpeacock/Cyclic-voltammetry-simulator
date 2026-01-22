@@ -44,7 +44,7 @@ D = st.sidebar.number_input(
 )
 
 # User-facing units: mM (1 mM ≈ 1 mol/m³)
-C_bulk_mM = st.sidebar.number_input("Bulk Concentration (mM)", value=1.0)
+C_bulk_mM = st.sidebar.number_input("Bulk Concentration (mM)", value=5.0)
 C_bulk = C_bulk_mM * 1.0  # mM → mol/m³ (1:1)
 
 A_cm2 = st.sidebar.number_input("Electrode Area (cm²)", value=0.126)
