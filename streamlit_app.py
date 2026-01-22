@@ -33,7 +33,13 @@ v_user = st.sidebar.number_input(
 )
 v = v_user * 10.0  # internal ×10 scaling
 
-dt = st.sidebar.number_input("Time Step (s)", value=2e-5, format="%.1e")
+dt = st.sidebar.number_input(
+    "Time Step (s)",
+    value=2e-5,
+    format="%.1e",
+    help="Simulation time increment. Smaller values improve accuracy but increase computation time. Must satisfy dt < (Δx²)/(2D) for stability."
+)
+
 t_eq = st.sidebar.number_input("Equilibration Time (s)", value=1.0)
 
 D = st.sidebar.number_input(
