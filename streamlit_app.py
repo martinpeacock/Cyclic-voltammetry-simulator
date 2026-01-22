@@ -1,5 +1,12 @@
 # -*- coding: utf-8 -*-
 """
+Created on Thu Jan 22 19:24:55 2026
+
+@author: martp
+"""
+
+# -*- coding: utf-8 -*-
+"""
 Created on Thu Jan 22 19:06:05 2026
 
 @author: martp
@@ -17,62 +24,83 @@ st.set_page_config(page_title="Cyclic Voltammetry Simulator", layout="wide")
 st.title("🔬 Cyclic Voltammetry Simulator")
 st.markdown("### Classic Reversible CV (Model A, v2.3.9)")
 
-# Sidebar controls
+# ---------------------------------------------------------
+# SIDEBAR — GROUPED LAYOUT
+# ---------------------------------------------------------
+
 st.sidebar.header("Simulation Parameters")
 
-E_start = st.sidebar.number_input("Start Potential (V)", value=-0.2)
-E_vertex = st.sidebar.number_input("Vertex Potential (V)", value=0.4)
-E_end = st.sidebar.number_input("End Potential (V)", value=-0.2)
+# -------------------------------
+# ELECTROCHEMICAL PROTOCOL
+# -------------------------------
+with st.sidebar.expander("Electrochemical Protocol"):
+    E_start = st.number_input("Start Potential (V)", value=-0.2)
+    E_vertex = st.number_input("Vertex Potential (V)", value=0.4)
+    E_end = st.number_input("End Potential (V)", value=-0.2)
 
-v_user = st.sidebar.number_input(
-    "Scan Rate (V/s)",
-    min_value=0.01,
-    max_value=1.00,
-    value=0.10,
-    step=0.01
-)
-v = v_user * 10.0  # internal ×10 scaling
+    v_user = st.number_input(
+        "Scan Rate (V/s)",
+        min_value=0.01,
+        max_value=1.00,
+        value=0.10,
+        step=0.01
+    )
+    v = v_user * 10.0  # internal ×10 scaling
 
-dt = st.sidebar.number_input(
-    "Time Step (s)",
-    value=2e-5,
-    format="%.1e",
-    help="Simulation time increment. Smaller values improve accuracy but increase computation time. Must satisfy dt < (Δx²)/(2D) for stability."
-)
+    t_eq = st.number_input("Equilibration Time (s)", value=1.0)
+    E0 = st.number_input("Formal Potential (V)", value=0.1)
 
-t_eq = st.sidebar.number_input("Equilibration Time (s)", value=1.0)
+# -------------------------------
+# PHYSICOCHEMICAL PARAMETERS
+# -------------------------------
+with st.sidebar.expander("Physicochemical Parameters"):
+    D = st.number_input(
+        "Diffusion Coefficient (m²/s)",
+        value=7.0e-10,
+        format="%.1e",
+        help="Typical diffusion coefficient for ferrocyanide in aqueous solution at room temperature."
+    )
 
-D = st.sidebar.number_input(
-    "Diffusion Coefficient (m²/s)",
-    value=7.0e-10,
-    format="%.1e",
-    help="Typical diffusion coefficient for ferrocyanide in aqueous solution at room temperature."
-)
+    C_bulk_mM = st.number_input("Bulk Concentration (mM)", value=5.0)
+    C_bulk = C_bulk_mM * 1.0  # mM → mol/m³
 
-# User-facing units: mM (1 mM ≈ 1 mol/m³)
-C_bulk_mM = st.sidebar.number_input("Bulk Concentration (mM)", value=5.0)
-C_bulk = C_bulk_mM * 1.0  # mM → mol/m³ (1:1)
+    T = st.number_input("Temperature (K)", value=298.15)
 
-A_cm2 = st.sidebar.number_input("Electrode Area (cm²)", value=0.126)
-A = A_cm2 * 1e-4  # cm² → m²
+# -------------------------------
+# ELECTRODE / GEOMETRY
+# -------------------------------
+with st.sidebar.expander("Electrode & Geometry"):
+    A_cm2 = st.number_input("Electrode Area (cm²)", value=0.126)
+    A = A_cm2 * 1e-4  # cm² → m²
 
-E0 = st.sidebar.number_input("Formal Potential (V)", value=0.1)
-T = st.sidebar.number_input("Temperature (K)", value=298.15)
+# -------------------------------
+# NUMERICAL / SIMULATION
+# -------------------------------
+with st.sidebar.expander("Numerical Simulation Settings"):
+    dt = st.number_input(
+        "Time Step (s)",
+        value=2e-5,
+        format="%.1e",
+        help="Simulation time increment. Smaller values improve accuracy but increase computation time. Must satisfy dt < (Δx²)/(2D) for stability."
+    )
 
-x_max_um = st.sidebar.number_input(
-    "Domain Size (µm)",
-    value=700.0,
-    help="Depth of the simulated solution. Must be much larger than the diffusion layer (~20–50 µm) to avoid boundary artefacts."
-)
-x_max = x_max_um * 1e-6  # µm → m
+    x_max_um = st.number_input(
+        "Domain Size (µm)",
+        value=700.0,
+        help="Depth of the simulated solution. Should exceed the diffusion layer thickness to avoid boundary artefacts."
+    )
+    x_max = x_max_um * 1e-6  # µm → m
 
-Nx = st.sidebar.number_input(
-    "Grid Points",
-    value=400,
-    help="Number of spatial points used to discretise the diffusion domain. Higher values improve accuracy but increase computation time."
-)
+    Nx = st.number_input(
+        "Grid Points",
+        value=400,
+        help="Number of spatial points used to discretise the diffusion domain. Higher values improve accuracy but increase computation time."
+    )
 
-# Run simulation
+# ---------------------------------------------------------
+# RUN SIMULATION
+# ---------------------------------------------------------
+
 if st.button("Run Simulation"):
 
     progress_bar = st.progress(0)
@@ -112,10 +140,14 @@ if st.button("Run Simulation"):
     E_plot = E[scan_start_index:]
     i_plot = i_corrected[scan_start_index:]
 
-    # Tabs
+    # ---------------------------------------------------------
+    # TABS
+    # ---------------------------------------------------------
     tab1, tab2, tab3 = st.tabs(["Voltammogram", "Surface Concentrations", "Depletion Profiles"])
 
-    # Tab 1: CV
+    # -------------------------------
+    # TAB 1 — CYCLIC VOLTAMMOGRAM
+    # -------------------------------
     with tab1:
         fig_cv = px.line(
             x=E_plot,
@@ -133,7 +165,9 @@ if st.button("Run Simulation"):
 
         st.plotly_chart(fig_cv, use_container_width=True, config={"scrollZoom": True})
 
-    # Tab 2: Surface concentrations
+    # -------------------------------
+    # TAB 2 — SURFACE CONCENTRATIONS
+    # -------------------------------
     with tab2:
         df_surf = pd.DataFrame({
             "time": t,
@@ -151,7 +185,9 @@ if st.button("Run Simulation"):
 
         st.plotly_chart(fig_surf, use_container_width=True)
 
-    # Tab 3: Depletion profiles
+    # -------------------------------
+    # TAB 3 — DEPLETION PROFILES
+    # -------------------------------
     with tab3:
         if snaps["x"] is not None:
             df_dep = pd.DataFrame({"x": snaps["x"]})
