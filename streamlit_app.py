@@ -61,7 +61,7 @@ with st.sidebar.expander("Physicochemical Parameters"):
         help="Typical diffusion coefficient for ferrocyanide in aqueous solution at room temperature."
     )
 
-    C_bulk_mM = st.number_input("Bulk Concentration (mM)", value=5.0)
+    C_bulk_mM = st.number_input("Bulk Concentration (mM)", value=1.0)
     C_bulk = C_bulk_mM * 1.0  # mM → mol/m³
 
     T = st.number_input("Temperature (K)", value=298.15)
