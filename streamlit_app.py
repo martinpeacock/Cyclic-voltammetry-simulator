@@ -33,7 +33,14 @@ A = A_cm2 * 1e-4   # convert cm² → m²
 E0 = st.sidebar.number_input("Formal Potential (V)", value=0.1)
 T = st.sidebar.number_input("Temperature (K)", value=298.15)
 
-x_max = st.sidebar.number_input("Domain Size (m)", value=7e-4, format="%.1e")
+x_max_um = st.sidebar.number_input(
+    "Domain Size (µm)",
+    value=700.0,
+    help="Depth of the simulated solution. Must be much larger than the diffusion layer (~20–50 µm) to avoid boundary artefacts."
+)
+
+# Convert µm → m for the physics engine
+x_max = x_max_um * 1e-6
 Nx = st.sidebar.number_input("Grid Points", value=400)
 
 # Run simulation
