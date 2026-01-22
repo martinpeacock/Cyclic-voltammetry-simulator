@@ -27,7 +27,8 @@ D = st.sidebar.number_input("Diffusion Coefficient (m²/s)", value=4e-11, format
 C_bulk_mM = st.sidebar.number_input("Bulk Concentration (mM)", value=1.0)
 C_bulk = C_bulk_mM * 1.0   # mM → mol/m³ (1:1)
 
-A = st.sidebar.number_input("Electrode Area (m²)", value=1.96e-6, format="%.2e")
+A_cm2 = st.sidebar.number_input("Electrode Area (cm²)", value=0.126)
+A = A_cm2 * 1e-4   # convert cm² → m²
 
 E0 = st.sidebar.number_input("Formal Potential (V)", value=0.1)
 T = st.sidebar.number_input("Temperature (K)", value=298.15)
