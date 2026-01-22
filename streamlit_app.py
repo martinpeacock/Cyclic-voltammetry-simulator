@@ -49,7 +49,11 @@ x_max_um = st.sidebar.number_input(
 
 # Convert µm → m for the physics engine
 x_max = x_max_um * 1e-6
-Nx = st.sidebar.number_input("Grid Points", value=400)
+Nx = st.sidebar.number_input(
+    "Grid Points",
+    value=400,
+    help="Number of spatial points used to discretise the diffusion domain. Higher values improve accuracy but increase computation time."
+)
 
 # Run simulation
 if st.button("Run Simulation"):
