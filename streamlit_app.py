@@ -29,7 +29,12 @@ v = v_user * 10.0   # your internal ×10 scaling
 dt = st.sidebar.number_input("Time Step (s)", value=2e-5, format="%.1e")
 t_eq = st.sidebar.number_input("Equilibration Time (s)", value=1.0)
 
-D = st.sidebar.number_input("Diffusion Coefficient (m²/s)", value=4e-11, format="%.1e")
+D = st.sidebar.number_input(
+    "Diffusion Coefficient (m²/s)",
+    value=7.0e-10,
+    format="%.1e",
+    help="Typical diffusion coefficient for ferrocyanide in aqueous solution at room temperature."
+)
 
 # User-facing units: mM
 C_bulk_mM = st.sidebar.number_input("Bulk Concentration (mM)", value=1.0)
